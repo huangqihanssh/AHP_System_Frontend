@@ -128,11 +128,13 @@ const TableList: React.FC = () => {
       title: '体系描述',
       dataIndex: 'desc',
       valueType: 'textarea',
+      hideInSearch: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
       hideInForm: true,
+      hideInSearch: true,
       valueEnum: {
         0: {
           text: (
@@ -168,9 +170,10 @@ const TableList: React.FC = () => {
     },
     {
       title: '最近使用时间',
-      sorter: true,
+      // sorter: true,
       dataIndex: 'updatedAt',
       valueType: 'dateTime',
+      hideInSearch: true,
       renderFormItem: (item, { defaultRender, ...rest }, form) => {
         const status = form.getFieldValue('status');
         if (`${status}` === '0') {
