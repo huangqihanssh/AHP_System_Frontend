@@ -1,11 +1,6 @@
 // @ts-nocheck
-import {
-  ProFormSelect,
-  ProFormText,
-  ProFormTextArea,
-  StepsForm,
-} from '@ant-design/pro-components';
-import {Modal,Tree} from 'antd';
+import {ProFormSelect, ProFormText, ProFormTextArea, StepsForm,} from '@ant-design/pro-components';
+import {InputNumber, Modal, Select, Table, Tree} from 'antd';
 import React, {useState} from 'react';
 
 
@@ -31,6 +26,7 @@ const AddForm: React.FC<UpdateFormProps> = (props) => {
 
   const [systemName, setSystemName] = useState('')
   const [criterions, setCriterions] = useState('')
+  const [dataSource, setDataSource] = useState([]); // 从数据生成
 
 
   // 定义节点类
@@ -83,18 +79,113 @@ const AddForm: React.FC<UpdateFormProps> = (props) => {
           );
         }
 
-        return <TreeNode title={node.name} key={node.name} />
+        return <TreeNode title={node.name} key={node.name}/>
       })
     }
 
     return (
-      <Tree defaultExpandAll={true} showLine={true} expandAction="expand" >
+      <Tree defaultExpandAll={true} showLine={true} expandAction="expand">
         <TreeNode title={systemName}>
           {renderTreeNodes(data.children)}
         </TreeNode>
       </Tree>
     )
   }
+
+  const selectBefore = (
+    <Select defaultValue="add" style={{width: 60}}>
+      <Option value="add">+</Option>
+      <Option value="minus">-</Option>
+    </Select>
+  );
+
+  // 比较计分组件
+  const CompareCell = ({a, b}) => {
+    const [score, setScore] = useState(1);
+
+    return (
+      <InputNumber addonBefore={selectBefore} defaultValue={1} max={10} min={1}/>
+    )
+  }
+
+  const parseTree = (root) => {
+
+    const dataSource = []
+
+    const getPairDataSource = (arr) => {
+      const pairs = [];
+      arr.forEach(x => {
+        arr.forEach(y => {
+          if (x !== y) {
+            if (!pairs.some(p => p[0] === y && p[1] === x)) {
+              pairs.push([x, y]);
+            }
+          }
+        });
+      });
+
+      const tempDataSource = [];
+      pairs.forEach(ele => {
+        tempDataSource.push(
+          {
+            key: ele[0] + ele[1],
+            critA: ele[0],
+            critB: ele[1],
+          },
+        )
+      })
+      console.log(tempDataSource)
+      return tempDataSource
+    }
+
+    const parentArr = []
+    root.children.forEach(child => {
+      console.log(child.name);
+      parentArr.push(child.name)
+      const childArr = []
+      child.children.forEach(_child => {
+        childArr.push(_child.name)
+        console.log(_child.name);
+      });
+      console.log(getPairDataSource(childArr), '1111')
+       dataSource.push(...getPairDataSource(childArr));
+    });
+    console.log(getPairDataSource(parentArr), '123')
+    console.log(dataSource, '1234')
+    return getPairDataSource(parentArr).concat(dataSource);
+  }
+
+  const PairwiseTable = (values) => {
+
+    const dataSource = values.dataSource
+
+    // 列配置
+    const columns = [
+      {
+        title: '指标A',
+        dataIndex: 'critA',
+      },
+      {
+        title: '指标B',
+        dataIndex: 'critB',
+
+      },
+      {
+        title: '评分（正号表示前者比后者重要，负号反之）',
+        dataIndex: 'rank',
+        render: (critA, critB) => <CompareCell a={critA} b={critB}/>
+      }
+    ];
+
+
+    return (
+      <Table
+        columns={columns}
+        dataSource={dataSource}
+      />
+    )
+  }
+
 
   return (
     <StepsForm
@@ -165,7 +256,9 @@ const AddForm: React.FC<UpdateFormProps> = (props) => {
           const critText = values.critText
           const root = parse(critText);
           console.log(JSON.stringify(root, null, 2));
-          setCriterions(root)
+          setCriterions(root);
+          const ds = parseTree(root);
+          setDataSource(ds);
           return Promise.resolve(true);
         }}
         title={'决策模型'}
@@ -210,7 +303,10 @@ const AddForm: React.FC<UpdateFormProps> = (props) => {
         }}
         title={'指标评分'}
       >
-      <RecursiveTree criterions={criterions} systemName={systemName}/>
+        指标层级
+        <RecursiveTree criterions={criterions} systemName={systemName}/>
+        指标评分
+        <PairwiseTable dataSource={dataSource}/>
       </StepsForm.StepForm>
     </StepsForm>
   );
